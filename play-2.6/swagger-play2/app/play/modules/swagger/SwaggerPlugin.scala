@@ -16,19 +16,25 @@
 
 package play.modules.swagger
 
+import collection.JavaConversions.mapAsJavaMap
 import java.io.File
 import javax.inject.Inject
+
 import io.swagger.config.{FilterFactory, ScannerFactory}
 import play.modules.swagger.util.SwaggerContext
 import io.swagger.core.filter.SwaggerSpecFilter
+import io.swagger.models.SecurityRequirement
+import io.swagger.models.auth.{ApiKeyAuthDefinition, BasicAuthDefinition, In, SecuritySchemeDefinition}
 import play.api.inject.ApplicationLifecycle
-import play.api.{Logger, Application}
+import play.api.{Application, Configuration, Logger}
 import play.api.routing.Router
+
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-import play.routes.compiler.{Route => PlayRoute, Include => PlayInclude, RoutesFileParser, StaticPart}
+import play.routes.compiler.{RoutesFileParser, StaticPart, Include => PlayInclude, Route => PlayRoute}
 
 import scala.io.Source
+
 
 trait SwaggerPlugin
 
@@ -83,6 +89,41 @@ class SwaggerPluginImpl @Inject()(lifecycle: ApplicationLifecycle, router: Route
     case Some(value)=> value
   }
 
+  def parseSecuritySchemeDefinition(conf: Configuration): Option[SecuritySchemeDefinition] = {
+    conf.getString("type") match {
+      case Some("apiKey") =>
+        val definition = new ApiKeyAuthDefinition()
+        conf.getString("name").foreach(definition.setName)
+        conf.getString("in").foreach(in => definition.setIn(In.forValue(in)))
+        Some(definition)
+      case Some("basic") => Some(new BasicAuthDefinition())
+      case _ => None
+    }
+  }
+
+  val securityDefinition: java.util.Map[String, SecuritySchemeDefinition] = {
+    config.getConfig("swagger.api.securityDefinitions") match {
+      case None => new java.util.HashMap[String, SecuritySchemeDefinition]()
+      case Some(definitions) =>
+        mapAsJavaMap(definitions.subKeys.flatMap(key => parseSecuritySchemeDefinition(definitions.getConfig(key).get).map(key -> _)).toMap)
+    }
+  }
+
+  def parseSecurity(conf: Configuration): Option[SecurityRequirement] = {
+    conf.getString("name").map { name =>
+      val scopes: java.util.List[String] = conf.getStringList("scopes").getOrElse(new java.util.ArrayList())
+      new SecurityRequirement().requirement(name, scopes)
+    }
+  }
+
+  val security: java.util.List[SecurityRequirement] = {
+    config.getConfigList("swagger.api.security") match {
+      case Some(configs) => configs.flatMap(parseSecurity)
+      case None => new java.util.ArrayList[SecurityRequirement]()
+    }
+  }
+
+
   SwaggerContext.registerClassLoader(app.classloader)
 
   var scanner = new PlayApiScanner()
@@ -99,6 +140,8 @@ class SwaggerPluginImpl @Inject()(lifecycle: ApplicationLifecycle, router: Route
   swaggerConfig.termsOfServiceUrl = termsOfServiceUrl
   swaggerConfig.license = license
   swaggerConfig.licenseUrl = licenseUrl
+  swaggerConfig.securityDefinition = securityDefinition
+  swaggerConfig.security = security
 
   PlayConfigFactory.setConfig(swaggerConfig)
 

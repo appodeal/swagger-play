@@ -1,5 +1,11 @@
 package play.modules.swagger;
 
+import io.swagger.models.SecurityRequirement;
+import io.swagger.models.auth.SecuritySchemeDefinition;
+
+import java.util.List;
+import java.util.Map;
+
 public class PlaySwaggerConfig {
 
     String[] schemes;
@@ -13,6 +19,8 @@ public class PlaySwaggerConfig {
     String filterClass;
     String host;
     String basePath;
+    Map<String, SecuritySchemeDefinition> securityDefinition;
+    List<SecurityRequirement> security;
 
     public String[] getSchemes() {
         return schemes;
@@ -100,5 +108,21 @@ public class PlaySwaggerConfig {
 
     public void setBasePath(String basePath) {
         this.basePath = basePath;
+    }
+
+    public Map<String, SecuritySchemeDefinition> getSecurityDefinition() {
+        return securityDefinition;
+    }
+
+    public void setSecurityDefinition(Map<String, SecuritySchemeDefinition> securityDefinition) {
+        this.securityDefinition = securityDefinition;
+    }
+
+    public List<SecurityRequirement> getSecurity() {
+        return security;
+    }
+
+    public void setSecurity(List<SecurityRequirement> security) {
+        this.security = security;
     }
 }

@@ -61,7 +61,9 @@ class PlayApiScanner() extends Scanner with SwaggerConfig {
     updateInfoFromConfig(swagger)
     swagger.host(playSwaggerConfig.host)
     swagger.basePath(playSwaggerConfig.basePath);
-
+    swagger.setSecurityDefinitions(playSwaggerConfig.securityDefinition)
+    swagger.setSecurity(playSwaggerConfig.security)
+    swagger
   }
 
   override def getFilterClass(): String = {
