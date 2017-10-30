@@ -3,7 +3,7 @@ version := "1.6.1-SNAPSHOT"
 
 checksums in update := Nil
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.4"
 
 crossScalaVersions := Seq(scalaVersion.value, "2.12.2")
 
